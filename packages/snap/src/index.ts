@@ -1,5 +1,6 @@
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
-import { panel, text } from '@metamask/snaps-ui';
+
+import { SignMessageParams, getState, getWallet } from './util';
 
 const SALT = 'Generate key';
 
@@ -14,36 +15,45 @@ const SALT = 'Generate key';
  * @throws If the request method is not valid for this snap.
  */
 export const onRpcRequest: OnRpcRequestHandler = async ({
-  origin,
   request,
-}) => {
+}): Promise<string | boolean> => {
   switch (request.method) {
-    case 'hello':
-      return snap.request({
-        method: 'snap_dialog',
-        params: {
-          type: 'confirmation',
-          content: panel([
-            text(`Hello, **${origin}**!`),
-            text('This custom confirmation is just for display purposes.'),
-            text(
-              'But you can edit the snap source code to make it do something, if you want to!',
-            ),
-          ]),
-        },
-      });
+    case 'initKey': {
+      const persistedData = await getState();
+
+      if (!persistedData?.privateKey) {
+        const privateKey = await snap.request({
+          method: 'snap_getEntropy',
+          params: {
+            version: 1,
+            salt: SALT,
+          },
+        });
+
+        await snap.request({
+          method: 'snap_manageState',
+          params: { operation: 'update', newState: { privateKey } },
+        });
+
+        return true;
+      }
+
+      return false;
+    }
 
     case 'getAddress': {
-      const privateKey = await snap.request({
-        method: 'snap_getEntropy',
-        params: {
-          version: 1,
-          salt: SALT,
-        },
-      });
+      const wallet = await getWallet();
+      const address = await wallet.getAddress();
 
-      // TODO: Return address
-      return privateKey;
+      return address;
+    }
+
+    case 'signMessage': {
+      const params = request.params as SignMessageParams;
+      const wallet = await getWallet();
+      const signMessage = await wallet.signMessage(params.message);
+
+      return signMessage;
     }
 
     default:
