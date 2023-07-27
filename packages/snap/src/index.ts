@@ -1,4 +1,6 @@
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
+import { signData } from '@statechannels/nitro-protocol/dist/src/signatures';
+import { Signature } from 'ethers';
 
 import { SignMessageParams, getState, getWallet } from './util';
 
@@ -14,7 +16,7 @@ const SALT = 'Generate key';
  */
 export const onRpcRequest: OnRpcRequestHandler = async ({
   request,
-}): Promise<string | boolean> => {
+}): Promise<Signature | boolean | string> => {
   switch (request.method) {
     case 'initKey': {
       const persistedData = await getState();
@@ -48,9 +50,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
     case 'signMessage': {
       const params = request.params as SignMessageParams;
-      const wallet = await getWallet();
-      const signMessage = await wallet.signMessage(params.message);
-
+      const persistedData = await getState();
+      const signMessage = signData(params.message, persistedData.privateKey);
       return signMessage;
     }
 
