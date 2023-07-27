@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
+import { ethers} from 'ethers';
 import {
   connectSnap,
   getSnap,
@@ -162,6 +163,8 @@ const Index = () => {
 
   const handleSignMessage = async () => {
     try {
+      const message = 'Hello, world!';
+      const formatMessage = ethers.utils.formatBytes32String(message);
       const signMessage = await window.ethereum.request({
         method: 'wallet_invokeSnap',
         params: {
@@ -169,7 +172,7 @@ const Index = () => {
           request: {
             method: 'signMessage',
             params: {
-              message: 'Hello, world!',
+              message: formatMessage,
             }
           },
         },
