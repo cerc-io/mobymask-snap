@@ -99,6 +99,8 @@ const ErrorMessage = styled.div`
   }
 `;
 
+const DEFAULT_SNAP_ORIGIN = `local:http://localhost:8080`;
+
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
 
@@ -120,6 +122,59 @@ const Index = () => {
   const handleSendHelloClick = async () => {
     try {
       await sendHello();
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  };
+
+  const handleGetAddress = async () => {
+    try {
+      const address = await window.ethereum.request({
+        method: 'wallet_invokeSnap',
+        params: {
+          snapId: DEFAULT_SNAP_ORIGIN,
+          request: { method: 'getAddress' },
+        },
+      });
+      console.log(`address>> ${address}`);
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  };
+
+  const handleInit = async () => {
+    try {
+      const init = await window.ethereum.request({
+        method: 'wallet_invokeSnap',
+        params: {
+          snapId: DEFAULT_SNAP_ORIGIN,
+          request: { method: 'initKey' },
+        },
+      });
+      console.log(`init>> ${JSON.stringify(init)}`);
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  };
+
+  const handleSignMessage = async () => {
+    try {
+      const signMessage = await window.ethereum.request({
+        method: 'wallet_invokeSnap',
+        params: {
+          snapId: DEFAULT_SNAP_ORIGIN,
+          request: {
+            method: 'signMessage',
+            params: {
+              message: 'Hello, world!',
+            }
+          },
+        },
+      });
+      console.log(`signMessage>> ${JSON.stringify(signMessage)}`);
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -203,6 +258,10 @@ const Index = () => {
           }
         />
         <Notice>
+          <button onClick={handleInit}>Init</button>
+          <button onClick={handleGetAddress}>Get Address</button>
+          <button onClick={handleSignMessage}>Sign message</button>
+
           <p>
             Please note that the <b>snap.manifest.json</b> and{' '}
             <b>package.json</b> must be located in the server root directory and
