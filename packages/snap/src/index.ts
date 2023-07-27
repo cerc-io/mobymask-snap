@@ -4,7 +4,7 @@ import { Signature } from 'ethers';
 
 import { SignMessageParams, getState, getWallet } from './util';
 
-const SALT = 'Generate key';
+const SALT = 'MobyMask';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
