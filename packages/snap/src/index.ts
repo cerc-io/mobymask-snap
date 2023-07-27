@@ -1,6 +1,8 @@
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { panel, text } from '@metamask/snaps-ui';
 
+const SALT = 'Generate key';
+
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
  *
@@ -11,7 +13,10 @@ import { panel, text } from '@metamask/snaps-ui';
  * @returns The result of `snap_dialog`.
  * @throws If the request method is not valid for this snap.
  */
-export const onRpcRequest: OnRpcRequestHandler = ({ origin, request }) => {
+export const onRpcRequest: OnRpcRequestHandler = async ({
+  origin,
+  request,
+}) => {
   switch (request.method) {
     case 'hello':
       return snap.request({
@@ -27,6 +32,20 @@ export const onRpcRequest: OnRpcRequestHandler = ({ origin, request }) => {
           ]),
         },
       });
+
+    case 'getAddress': {
+      const privateKey = await snap.request({
+        method: 'snap_getEntropy',
+        params: {
+          version: 1,
+          salt: SALT,
+        },
+      });
+
+      // TODO: Return address
+      return privateKey;
+    }
+
     default:
       throw new Error('Method not found.');
   }

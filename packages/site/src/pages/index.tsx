@@ -99,6 +99,8 @@ const ErrorMessage = styled.div`
   }
 `;
 
+const DEFAULT_SNAP_ORIGIN = `local:http://localhost:8080`;
+
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
 
@@ -120,6 +122,22 @@ const Index = () => {
   const handleSendHelloClick = async () => {
     try {
       await sendHello();
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  };
+
+  const handleGetAddress = async () => {
+    try {
+      const privateKey = await window.ethereum.request({
+        method: 'wallet_invokeSnap',
+        params: {
+          snapId: DEFAULT_SNAP_ORIGIN,
+          request: { method: 'getAddress' },
+        },
+      });
+      console.log(`private key ${privateKey}`);
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -203,6 +221,7 @@ const Index = () => {
           }
         />
         <Notice>
+          <button onClick={handleGetAddress}>Get Address</button>
           <p>
             Please note that the <b>snap.manifest.json</b> and{' '}
             <b>package.json</b> must be located in the server root directory and
