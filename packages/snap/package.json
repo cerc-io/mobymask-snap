@@ -27,6 +27,8 @@
     "test": "jest"
   },
   "dependencies": {
+    "@cerc-io/nitro-client": "^0.1.6",
+    "@cerc-io/nitro-util": "^0.1.6",
     "@metamask/snaps-types": "^0.32.2",
     "@metamask/snaps-ui": "^0.32.2",
     "@statechannels/nitro-protocol": "^2.0.0-alpha.4",

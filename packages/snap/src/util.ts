@@ -6,7 +6,13 @@ export type SignMessageParams = {
 };
 
 export type State = {
-  privateKey: string;
+  privateKey?: string;
+  payPermissions?: {
+    [key: string]: {
+      amount: string;
+      isAllowed: boolean;
+    };
+  };
 };
 
 /**
@@ -19,7 +25,7 @@ export async function getState(): Promise<State> {
     params: { operation: 'get' },
   });
 
-  return persistedData as State;
+  return (persistedData as State | null) ?? {};
 }
 
 /**
