@@ -1,6 +1,10 @@
+import assert from 'assert';
+import { Signature } from 'ethers';
+
+import { utils } from '@cerc-io/nitro-client';
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { signData } from '@statechannels/nitro-protocol/dist/src/signatures';
-import { Signature } from 'ethers';
+import { JSONbigNative } from '@cerc-io/nitro-util';
 
 import { SignMessageParams, getState, getWallet } from './util';
 
@@ -21,8 +25,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     case 'initKey': {
       const persistedData = await getState();
 
-      if (!persistedData?.privateKey) {
-        const privateKey = await snap.request({
+      if (!persistedData.privateKey) {
+        persistedData.privateKey = await snap.request({
           method: 'snap_getEntropy',
           params: {
             version: 1,
@@ -32,7 +36,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
         await snap.request({
           method: 'snap_manageState',
-          params: { operation: 'update', newState: { privateKey } },
+          params: { operation: 'update', newState: persistedData },
         });
 
         return true;
@@ -51,8 +55,71 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     case 'signMessage': {
       const params = request.params as SignMessageParams;
       const persistedData = await getState();
+      assert(persistedData.privateKey);
       const signMessage = signData(params.message, persistedData.privateKey);
       return signMessage;
+    }
+
+    case 'updateRates': {
+      const params = request.params as { endpoint: string; rates: string };
+      const rates = JSONbigNative.parse(params.rates) as utils.RateInfo[];
+      const persistedData = await getState();
+
+      persistedData.payPermissions = rates.reduce((acc, rate) => {
+        const permissionKey = `${params.endpoint}#${rate.type}#${rate.name}`;
+
+        const payPermission = {
+          amount: rate.amount.toString(),
+          isAllowed: Boolean(acc[permissionKey]?.isAllowed),
+        };
+
+        if (
+          acc[permissionKey] &&
+          acc[permissionKey].amount !== rate.amount.toString()
+        ) {
+          payPermission.isAllowed = false;
+        }
+
+        acc[permissionKey] = payPermission;
+
+        return acc;
+      }, persistedData.payPermissions ?? {});
+
+      await snap.request({
+        method: 'snap_manageState',
+        params: { operation: 'update', newState: persistedData },
+      });
+
+      return true;
+    }
+
+    case 'requestPermission': {
+      const params = request.params as {
+        endpoint: string;
+        rateType: utils.RateType;
+        name: string;
+      };
+      const permissionKey = `${params.endpoint}#${params.rateType}#${params.name}`;
+      const persistedData = await getState();
+
+      if (!persistedData.payPermissions?.[permissionKey]) {
+        return false;
+      }
+
+      const { isAllowed } = persistedData.payPermissions[permissionKey];
+
+      if (!isAllowed) {
+        // TODO: Display dialog and allow
+      }
+
+      persistedData.payPermissions[permissionKey].isAllowed = true;
+
+      await snap.request({
+        method: 'snap_manageState',
+        params: { operation: 'update', newState: persistedData },
+      });
+
+      return true;
     }
 
     default:
